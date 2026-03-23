@@ -7,11 +7,13 @@
 
 Для реалізації проєкту "TravelSync" було обрано наступний технологічний стек:
 
-Категорія	Обрана технологія
-Back-end	Node.js + NestJS (TypeScript)
-Front-end	React (Next.js) + TailwindCSS
-База даних (СКБД)	PostgreSQL (Основна БД) + Redis (Кешування/Сесії)
-DevOps / Hosting	Docker, GitHub Actions, AWS (EC2/RDS) або Render
+Back-end: Node.js, NestJS (TypeScript). Обрано через потужну модульну структуру та вбудовану підтримку JWT і TypeORM.
+
+Front-end: React (Vite), Tailwind CSS. Обрано для створення швидкого SPA з сучасним дизайном.
+
+Database: PostgreSQL. Обрано через надійність фінансових транзакцій та підтримку складних зв'язків (One-to-Many).
+
+DevOps: Docker, Docker Compose. Для повної ізоляції середовища та швидкого розгортання.
 
 Обґрунтування вибору:
 Оскільки "TravelSync" передбачає спільну роботу в реальному часі (додавання витрат, голосування, оновлення карти), Node.js є ідеальним вибором завдяки своїй асинхронній природі та вбудованій підтримці WebSockets. Фреймворк NestJS забезпечить строгу архітектуру та типізацію (TypeScript), що критично важливо для фінансових розрахунків. На фронтенді використано React, оскільки він дозволяє легко створити PWA (прогресивний вебдодаток) за принципом Mobile-First для зручного використання в дорозі.
@@ -27,21 +29,15 @@ DevOps / Hosting	Docker, GitHub Actions, AWS (EC2/RDS) або Render
 Показує систему TravelSync в оточенні користувачів та зовнішніх сервісів.
 
 ```mermaid
-flowchart TB
-    User((Мандрівник Користувач))
-    
-    subgraph System["TravelSync System"]
-        App[Вебдодаток TravelSync Дозволяє планувати маршрут та ділити витрати]
-    end
-    
-    Mail(External: Email Service\nSendGrid / SMTP)
-    Map(External: Map API\nMapbox / Google Maps)
-    Currency(External: Currency API\nOpenExchangeRates)
+graph TD
+    User((Мандрівник))
+    Admin((Адміністратор))
+    System[TravelSync App]
+    DB[(PostgreSQL)]
 
-    User -->|Створює поїздки, додає витрати| App
-    App -->|Надсилає запрошення та сповіщення| Mail
-    App -->|Отримує координати та тайли карт| Map
-    App -->|Отримує актуальні курси валют| Currency
+    User -->|Створює плани та витрати| System
+    Admin -->|Переглядає глобальну статистику| System
+    System <-->|Зберігає дані| DB
   ```
     
 Рівень 2: Container Diagram (Контейнери)
@@ -49,24 +45,16 @@ flowchart TB
 Розкриває внутрішню структуру системи "TravelSync".
 
 ```mermaid
-flowchart TB
-    User((Мандрівник))
-    Map(Map API)
-    Currency(Currency API)
-
-    subgraph System ["TravelSync System"]
-        WebApp["Single-Page App\n(React)"]
-        API["API Application\n(Node.js / NestJS)"]
-        DB[(Реляційна БД\nPostgreSQL)]
-        Cache[(Cache & Pub/Sub\nRedis)]
+graph TD
+    subgraph Docker_Compose
+        Web[React SPA + Tailwind]
+        API[NestJS API Server]
+        Database[(PostgreSQL)]
     end
 
-    User -->|HTTPS / WSS| WebApp
-    WebApp -->|REST API / WebSockets| API
-    WebApp -->|Отримує карти напряму| Map
-    API <-->|SQL Queries / TypeORM| DB
-    API <-->|Кеш сесій, WS події| Cache
-    API -->|HTTP GET| Currency
+    User -->|HTTPS| Web
+    Web -->|REST API + JWT| API
+    API <-->|TypeORM SQL| Database
 ```
     
 Рівень 3: Component Diagram (Компоненти)
@@ -74,29 +62,15 @@ flowchart TB
 Деталізує контейнер "API Application" (Backend).
 
 ```mermaid
-flowchart TB
-    WebApp[SPA React]
-    DB[(PostgreSQL)]
+graph TD
+    AuthC[Auth Controller] --> AuthS[Auth Service]
+    TripC[Trip Controller] --> TripS[Trip Service]
+    AdminC[Admin Controller] --> TripS
     
-    subgraph APIContainer ["API Application (NestJS)"]
-        Auth[AuthController\nКерування JWT та логіном]
-        Trip[TripController\nЛокації та маршрути]
-        Expense[ExpenseController\nФінанси та баланс]
-        WS[RealtimeGateway\nWebSockets для синхронізації]
-        Calc[BalanceCalculatorService\nБізнес-логіка боргів]
-    end
-
-    WebApp -->|POST /login| Auth
-    WebApp -->|GET, POST /trips| Trip
-    WebApp -->|POST /expenses| Expense
-    WebApp <-->|WSS Events| WS
-
-    Auth -->|Read/Write| DB
-    Trip -->|Read/Write| DB
-    Expense -->|Read/Write| DB
-    Expense --> Calc
-    WS -->|Broadcast changes| Trip
-    WS -->|Broadcast changes| Expense
+    AuthS --> UserRepo[User Repository]
+    TripS --> TripRepo[Trip Repository]
+    TripS --> ExpRepo[Expense Repository]
+    TripS --> ActRepo[Activity Repository]
 ```
 
 3. Проєктування бази даних (ER-Model)
@@ -113,50 +87,36 @@ Trips - Expenses: Зв'язок 1:N. Одна поїздка має багато
 Expenses - ExpenseSplits: Зв'язок 1:N. Одна транзакція розбивається на кількох учасників (хто скільки винен).
 ```mermaid
 erDiagram
-    USERS {
+    USER {
         uuid id PK
         string email UK
-        string password_hash
-        string full_name
-        boolean is_superadmin 
-        timestamp created_at
+        string password
+        string role "user / admin"
+        string hashedRefreshToken
     }
-    TRIPS {
+    TRIP {
         uuid id PK
         string title
-        string base_currency
-        date start_date
-        date end_date
+        string baseCurrency
+        timestamp createdAt
+        uuid userId FK
     }
-    TRIP_MEMBERS {
+    EXPENSE {
         uuid id PK
-        uuid user_id FK
-        uuid trip_id FK
-        string role "Admin / Member"
-    }
-    EXPENSES {
-        uuid id PK
-        uuid trip_id FK
-        uuid paid_by_user_id FK
+        string title
         decimal amount
-        string currency
-        string description
-        timestamp date
+        uuid tripId FK
     }
-    EXPENSE_SPLITS {
+    ACTIVITY {
         uuid id PK
-        uuid expense_id FK
-        uuid owed_by_user_id FK
-        decimal owed_amount
-        boolean is_settled
+        string name
+        boolean isCompleted
+        uuid tripId FK
     }
 
-    USERS ||--o{ TRIP_MEMBERS : "joins"
-    TRIPS ||--o{ TRIP_MEMBERS : "contains"
-    TRIPS ||--o{ EXPENSES : "has"
-    USERS ||--o{ EXPENSES : "pays for"
-    EXPENSES ||--o{ EXPENSE_SPLITS : "divided into"
-    USERS ||--o{ EXPENSE_SPLITS : "owes"
+    USER ||--o{ TRIP : "owns"
+    TRIP ||--o{ EXPENSE : "has"
+    TRIP ||--o{ ACTIVITY : "contains"
 ```
 Відповіді на контрольні запитання
 
