@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UserRole } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -13,10 +14,16 @@ export class UsersService {
 
   // Змінюємо тут тип на Partial<User>
   async create(userData: Partial<User>): Promise<User> {
-    const newUser = this.usersRepository.create(userData);
-    return this.usersRepository.save(newUser);
-  }
+  // Ми явно створюємо НОВИЙ об'єкт БЕЗ ID, 
+  // щоб TypeORM навіть не думав про оновлення
+  const newUser = this.usersRepository.create({
+    email: userData.email,
+    password: userData.password,
+    role: userData.role || UserRole.USER
+  });
 
+  return await this.usersRepository.save(newUser);
+}
   // Цей метод правильний, але перевір його наявність
   async findOneByEmail(email: string): Promise<User | undefined> {
   const user = await this.usersRepository

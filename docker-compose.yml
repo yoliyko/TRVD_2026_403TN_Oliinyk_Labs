@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # 1. Наша база даних
+  db:
+    image: postgres:15-alpine
+    container_name: travel_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword # Твій пароль
+      POSTGRES_DB: travelsync
+    ports:
+      - "5432:5432" # Прокидаємо порт, щоб ти міг підключитися через TablePlus
+
+  # 2. Наш бекенд
+  backend:
+    build: ./travel-sync-backend # Де лежить Dockerfile бекенду
+    container_name: travel_api
+    ports:
+      - "3000:3000"
+    environment:
+      # Оце магія! Ми кажемо, що база даних лежить на хості "db" (ім'я сервісу вище)
+      DB_HOST: db 
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: mysecretpassword
+      DB_NAME: travelsync
+    depends_on:
+      - db # Бекенд не запуститься, поки база не буде готова
+
+  # 3. Наш фронтенд
+  frontend:
+    build: ./travel-sync-frontend
+    container_name: travel_ui
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend

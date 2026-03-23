@@ -1,8 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
+import { Expense } from '../../expenses/entities/expense.entity'; 
+import { Activity } from 'src/activities/entities/activity.entity';
 
-@Entity('trips') 
+@Entity('trips')
 export class Trip {
-  @PrimaryGeneratedColumn('uuid') // Генерація унікального ID
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -13,4 +15,10 @@ export class Trip {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @OneToMany(() => Expense, (expense) => expense.trip)
+  expenses: Expense;
+
+  @OneToMany(() => Activity, (activity) => activity.trip)
+  activities: Activity;
 }

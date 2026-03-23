@@ -17,7 +17,11 @@ export class TripsService {
   }
 
   async findAll() {
-    return await this.tripRepository.find();
+    // relations: ['expenses'] каже TypeORM зробити JOIN таблиць автоматично!
+    return await this.tripRepository.find({ 
+      relations: ['expenses', 'activities'],
+      order: { createdAt: 'DESC' } // Нові поїздки будуть зверху
+    });
   }
 
   async findOne(id: string) {

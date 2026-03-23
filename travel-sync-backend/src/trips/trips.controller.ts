@@ -25,7 +25,6 @@ export class TripsController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN) // <--- Тільки адмін!
   remove(@Param('id') id: string) {
     return { message: 'Поїздку видалено адміном' }; // Спростимо для тесту
   }
