@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Activity } from './entities/activity.entity';
 import { CreateActivityDto } from './dto/create-activity.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
 
 @Injectable()
 export class ActivitiesService {
@@ -18,7 +19,7 @@ export class ActivitiesService {
   }
 
   // Оновлення статусу (V)
-  async update(id: string, updateData: { isCompleted: boolean }) {
+  async update(id: string, updateData: UpdateActivityDto) {
     await this.activityRepository.update(id, updateData);
     return this.activityRepository.findOneBy({ id });
   }

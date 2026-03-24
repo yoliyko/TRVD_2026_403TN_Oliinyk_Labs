@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Trip } from 'src/trips/entities/trip.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
 export enum UserRole {
   USER = 'user',
@@ -29,4 +30,8 @@ export class User {
     select: false 
 })
   hashedRefreshToken: string | null;
+  
+  @OneToMany(() => Trip, (trip) => trip.user)
+  trips: Trip[];
+
 }

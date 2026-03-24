@@ -17,8 +17,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   // Цей метод викликається автоматично після перевірки токена
   async validate(payload: any) {
-    // Те, що ми повертаємо тут, буде доступне в request.user
-    console.log('JWT Payload found:', payload);
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+    return { id: payload.sub, email: payload.email, role: payload.role };
   }
 }

@@ -1,15 +1,17 @@
-import { IsString, IsNotEmpty, MinLength, Length } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTripDto {
-  @ApiProperty({ example: 'Подорож до Риму' })
+  @ApiProperty({ example: 'Відпустка в горах' })
   @IsString()
   @IsNotEmpty()
-  @MinLength(3)
   title: string;
 
-  @ApiProperty({ example: 'EUR' })
-  @IsString()
-  @Length(3, 3) // Валюта має бути рівно 3 літери
-  baseCurrency: string;
+@ApiProperty({ example: '2026-03-24' })
+  @IsDateString()
+  startDate: string;
+
+  @ApiProperty({ example: '2026-03-30' })
+  @IsDateString()
+  endDate: string;
 }
